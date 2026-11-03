@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0f1a" />
+    <meta name="description" content="Vôlei de praia 2x2 em realidade virtual para Meta Quest, jogado com as mãos, direto no navegador." />
+    <title>Beach Volley VR</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%2214%22 fill=%22%23ffb35c%22/%3E%3Cpath d=%22M16 3c-3.5 4.2-4.2 9-2 13.8M29 16c-5.3-1-9.7.9-13 5M8 26c1.6-5.2 5.2-8.4 8-9.2%22 fill=%22none%22 stroke=%22%230a0f1a%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body data-mode="menu" data-game="training">
+    <div id="stage" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2.2" />
+          <path d="M16 3c-3.5 4.2-4.2 9-2 13.8M29 16c-5.3-1-9.7.9-13 5M8 26c1.6-5.2 5.2-8.4 8-9.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+        </svg>
+        <span>Beach Volley <b>VR</b></span>
+      </div>
+      <span class="topbar-tag">Feito para Meta Quest Browser</span>
+    </header>
+
+    <main>
+      <section id="menu" class="menu" aria-labelledby="title">
+        <div class="card">
+          <div class="loader" aria-hidden="true"><span></span></div>
+          <span class="eyebrow">2x2 · Mãos rastreadas · Bots com IA</span>
+          <h1 id="title">Vôlei de praia <em>em realidade virtual</em></h1>
+          <p class="lede">
+            Você e a Duda contra Rafa e Léo. Manchete, toque e cortada com as próprias mãos,
+            regras oficiais, torcida e replay em câmera lenta.
+          </p>
+
+          <div class="actions">
+            <button id="btn-vr" class="btn btn-primary" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v6a2.5 2.5 0 0 1-2.5 2.5h-3.2a2 2 0 0 1-1.7-1l-.9-1.5a.8.8 0 0 0-1.4 0l-.9 1.5a2 2 0 0 1-1.7 1H5.5A2.5 2.5 0 0 1 3 14.5Z" fill="currentColor" /></svg>
+              <span>Entrar em VR</span>
+            </button>
+            <button id="btn-explore" class="btn btn-ghost" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm3.6 5.4-2 5.4a1 1 0 0 1-.6.6l-5.4 2 2-5.4a1 1 0 0 1 .6-.6Z" fill="currentColor" /></svg>
+              <span>Treinar no PC</span>
+            </button>
+            <button id="btn-watch" class="btn btn-ghost" type="button" disabled>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5Z" fill="currentColor" /></svg>
+              <span>Assistir partida</span>
+            </button>
+          </div>
+
+          <div class="settings">
+            <div class="setting">
+              <span class="setting-label">Dificuldade</span>
+              <div class="segmented segmented-sm" role="radiogroup" aria-label="Dificuldade">
+                <button type="button" role="radio" aria-checked="false" data-diff="easy">Fácil</button>
+                <button type="button" role="radio" aria-checked="true" data-diff="normal">Normal</button>
+                <button type="button" role="radio" aria-checked="false" data-diff="hard">Difícil</button>
+              </div>
+            </div>
+            <div class="setting">
+              <span class="setting-label">Formato</span>
+              <div class="segmented segmented-sm" role="radiogroup" aria-label="Formato">
+                <button type="button" role="radio" aria-checked="true" data-bestof="1">1 set</button>
+                <button type="button" role="radio" aria-checked="false" data-bestof="3">Melhor de 3</button>
+              </div>
+            </div>
+          </div>
+
+          <p id="status" class="status" data-state="loading" role="status" aria-live="polite">
+            <span class="dot" aria-hidden="true"></span>
+            <span class="status-text">Preparando a quadra…</span>
+          </p>
+
+          <ul class="features">
+            <li><b>Hand tracking</b><span>manchete, toque, cortada</span></li>
+            <li><b>Física 120 Hz</b><span>arrasto e efeito Magnus</span></li>
+            <li><b>Áudio 3D</b><span>mar, torcida e apito</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="hud" class="hud" aria-label="Controles do modo exploração">
+        <div class="hud-top">
+          <button id="btn-back" class="chip-btn" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6 8.5 12l6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            Menu
+          </button>
+          <div class="segmented" role="radiogroup" aria-label="Câmera">
+            <button type="button" role="radio" aria-checked="true" data-cam="player">Jogador</button>
+            <button type="button" role="radio" aria-checked="false" data-cam="tv">TV</button>
+            <button type="button" role="radio" aria-checked="false" data-cam="net">Rede</button>
+            <button type="button" role="radio" aria-checked="false" data-cam="follow">Bola</button>
+          </div>
+          <div class="fps" aria-label="Quadros por segundo"><span id="fps">--</span><small>fps</small></div>
+        </div>
+
+        <div id="scorebar" class="scorebar" aria-live="polite">
+          <div class="sb-team sb-a"><i class="sb-serve" aria-hidden="true"></i><span class="sb-name">Duda + Você</span><b class="sb-score" data-team="A">0</b></div>
+          <div class="sb-mid"><span class="sb-label">SET 1</span><span class="sb-sets">0 · 0</span></div>
+          <div class="sb-team sb-b"><b class="sb-score" data-team="B">0</b><span class="sb-name">Rafa + Léo</span><i class="sb-serve" aria-hidden="true"></i></div>
+        </div>
+
+        <div class="dock dock-training">
+          <button class="dock-btn dock-primary" type="button" data-action="machine"><kbd>Espaço</kbd>Máquina saca</button>
+          <button class="dock-btn" type="button" data-action="serve"><kbd>S</kbd>Meu saque</button>
+          <button class="dock-btn" type="button" data-action="reset"><kbd>R</kbd>Recolocar bola</button>
+        </div>
+        <div class="dock dock-demo">
+          <button class="dock-btn dock-primary" type="button" data-action="restart"><kbd>N</kbd>Nova partida</button>
+          <button class="dock-btn" type="button" data-action="training"><kbd>T</kbd>Ir treinar</button>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      </section>
+
+      <section id="vr-note" class="vr-note" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        Em VR. O relógio no pulso esquerdo abre o menu. Tire o headset para sair.
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

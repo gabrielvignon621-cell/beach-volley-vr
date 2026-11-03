@@ -1,0 +1,20 @@
+{
+  "name": "beach-volley-vr",
+  "version": "0.1.0",
+  "description": "Vôlei de praia 2x2 em WebXR para Meta Quest Browser, com hand tracking.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "vite": "^7.3.7"
+  }
+}
