@@ -2,6 +2,8 @@
 
 Vôlei de praia 2x2 em WebXR para o Meta Quest Browser: você e a Duda contra Rafa e Léo, jogado com as próprias mãos (hand tracking) ou com os controles Touch, direto no navegador. Todas as cinco fases estão implementadas.
 
+**Jogar agora:** https://gabrielvignon621-cell.github.io/beach-volley-vr/ (no Quest, abra no Meta Quest Browser e toque em **Entrar em VR**). O site é publicado automaticamente a cada push na `main`.
+
 ## Rodar
 
 Requisitos: Node.js 20.19+ (ou 22.12+).
