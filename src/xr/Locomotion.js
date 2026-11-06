@@ -39,6 +39,7 @@ export class Locomotion {
     this.lift = 0;
     this.point = [0, 0]; // tempo segurando o gesto de apontar, por mão
     this.aimSide = -1;
+    this.onTeleport = null;
     this.handsEnabled = true; // desligado com o menu aberto (apontar+pinça é o clique do menu)
     this.ray = { origin: new THREE.Vector3(), dir: new THREE.Vector3() };
 
@@ -102,6 +103,7 @@ export class Locomotion {
   }
 
   teleport(point) {
+    this.onTeleport?.();
     this.#withFade(() => {
       const h = this.#headWorld();
       this.matrix.premultiply(m1.makeTranslation(point.x - h.x, 0, point.z - h.z));

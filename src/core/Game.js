@@ -26,6 +26,7 @@ import { AudioEngine } from '../audio/AudioEngine.js';
 import { TrainingBoard } from '../ui/TrainingBoard.js';
 import { Scoreboard, Banner, WristWatch, createNameTag } from '../ui/VRHud.js';
 import { VRMenu } from '../ui/VRMenu.js';
+import { TeleportTutorial } from '../ui/TeleportTutorial.js';
 import { DesktopView } from '../desktop/DesktopView.js';
 
 const tmp = new THREE.Vector3();
@@ -134,6 +135,9 @@ export class Game {
     this.banner = new Banner(this.scene);
     this.watch = new WristWatch(this.scene);
     this.vrMenu = new VRMenu(this.scene, this.rig, this.bus);
+    this.tutorial = new TeleportTutorial(this.scene);
+    this.tutorialPending = false;
+    this.locomotion.onTeleport = () => this.tutorial.done();
     this.replay = new Replay(this.ball, () => this.director.activeBots().map((b) => b.athlete));
     this.governor = new PerformanceGovernor(renderer, this.xr);
     this.view = new DesktopView(this.camera, renderer.domElement);
@@ -171,6 +175,12 @@ export class Game {
       this.striker.frameDt = dt || 1 / 72;
       this.locomotion.handsEnabled = !this.vrMenu.open;
       this.locomotion.update(dt);
+      // Tutorial do teleporte: aparece quando o menu inicial fecha.
+      if (presenting && this.tutorialPending && !this.vrMenu.open) {
+        this.tutorialPending = false;
+        this.tutorial.show(this.rig.head, this.rig.headForward);
+      }
+      this.tutorial.update(dt, this.rig.head, this.rig.headForward);
 
       const paused = this.paused;
       if (!paused) {
@@ -446,10 +456,13 @@ export class Game {
         if (!this.renderer.xr.isPresenting) return;
         this.rig.update(0, this.renderer.xr.getCamera());
         this.vrMenu.show('main', this.#menuData(), this.rig.head, this.rig.headForward);
+        this.tutorialPending = true;
       }, 600);
     });
     bus.on('xr:end', () => {
       this.locomotion.end();
+      this.tutorial.hide();
+      this.tutorialPending = false;
       this.vrMenu.hide();
       this.startTraining();
     });

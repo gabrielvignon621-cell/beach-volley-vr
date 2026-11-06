@@ -47,7 +47,7 @@ Ao entrar, o menu aparece na sua frente. Escolha a dificuldade (Fácil, Normal, 
 | Teletransporte | Aponte o indicador (outros dedos dobrados) para o chão do seu lado, espere o arco e abra a mão | Analógico direito para frente, mirar o arco e soltar (só no seu lado da quadra) |
 | Recentrar | Botão no menu (também ajusta sua altura à dos bots) | Botão no menu |
 
-O jogo é room-scale: você anda de verdade para alcançar a bola. Ao entrar, você é posicionado automaticamente na recepção, de frente para a rede, com os olhos na altura dos bots. Locomoção artificial é opcional e sempre com fade, para conforto.
+O jogo é room-scale: você anda de verdade para alcançar a bola. Ao fechar o menu inicial aparece uma telinha ensinando o teleporte (some após o primeiro teleporte). Ao entrar, você é posicionado automaticamente na recepção, de frente para a rede, com os olhos na altura dos bots. Locomoção artificial é opcional e sempre com fade, para conforto.
 
 ## No PC
 
