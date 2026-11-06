@@ -102,17 +102,17 @@ export class TeleportTutorial {
       // Ilustração: mão apontando, arco e alvo no chão.
       const pulse = 0.5 + 0.5 * Math.sin((frame / 16) * Math.PI * 2);
       ctx.save();
-      ctx.translate(640, 210);
+      ctx.translate(700, 215);
       ctx.strokeStyle = TEAL;
       ctx.lineWidth = 7;
       ctx.setLineDash([16, 12]);
       ctx.beginPath();
       ctx.moveTo(40, 40);
-      ctx.quadraticCurveTo(170, -60, 270, 120);
+      ctx.quadraticCurveTo(150, -60, 230, 120);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.ellipse(270, 130, 40 + pulse * 10, 13 + pulse * 3, 0, 0, Math.PI * 2);
+      ctx.ellipse(230, 130, 40 + pulse * 10, 13 + pulse * 3, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.font = '84px sans-serif';
       ctx.textAlign = 'center';
@@ -136,8 +136,8 @@ export class TeleportTutorial {
         p.font(500, 27);
         ctx.fillText(body, 146, y + 22);
       };
-      step(1, 'Aponte o indicador', 'Outros dedos dobrados, mire o chão.', 250);
-      step(2, 'Espere o arco verde', 'Vermelho = fora do seu lado.', 352);
+      step(1, 'Aponte o indicador', 'Outros dedos dobrados.', 250);
+      step(2, 'Mire no chão', 'Arco verde = pode ir.', 352);
       step(3, 'Abra a mão', 'Você aparece no alvo.', 454);
 
       ctx.fillStyle = 'rgba(255,255,255,0.08)';
