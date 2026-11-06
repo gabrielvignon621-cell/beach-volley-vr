@@ -105,6 +105,22 @@ export class BotDirector {
     return this.getDifficulty();
   }
 
+  /** A Duda faz de tudo para não errar: reage rápido, corre mais e é precisa em qualquer nível. */
+  skillOf(bot) {
+    const d = this.difficulty;
+    if (!bot?.isPartner) return d;
+    return { ...d, reaction: Math.min(d.reaction, 0.12), runSpeed: Math.max(d.runSpeed, 7), accel: Math.max(d.accel, 15), precision: 0.04 };
+  }
+
+  /** Onde a bola deve chegar em quem recebe do time A: na mão do jogador ou no corpo da Duda. */
+  #receiverPoint(receiver, d) {
+    const p = receiver.isHuman ? this.human.head : receiver.position;
+    const e = d.precision * 0.15;
+    const x = THREE.MathUtils.clamp(p.x + gauss() * e, -COURT.halfWidth + 0.3, COURT.halfWidth - 0.3);
+    const z = THREE.MathUtils.clamp(p.z + gauss() * e, 0.6, COURT.halfLength - 0.3);
+    return new THREE.Vector3(x, receiver.isHuman ? 0.95 : 0.25, z);
+  }
+
   get jumpHeight() {
     return JUMP_BY_LEVEL[this.difficulty.key] ?? 0.62;
   }
@@ -189,11 +205,13 @@ export class BotDirector {
     const receiver = receivers[0].isHuman || this.demo ? (Math.random() < 0.6 ? receivers[0] : receivers[1]) : receivers[Math.random() < 0.5 ? 0 : 1];
     const rs = signOf(receiver.team);
     const rp = receiver.isHuman ? this.human.position : receiver.position;
-    const target = new THREE.Vector3(
-      THREE.MathUtils.clamp(rp.x + gauss() * d.precision * 0.6, -COURT.halfWidth + 0.4, COURT.halfWidth - 0.4),
-      0.3,
-      rs * THREE.MathUtils.clamp(Math.abs(rp.z) + 0.6 + gauss() * d.precision * 0.5, 2.5, COURT.halfLength - 0.5),
-    );
+    const target = receiver.team === 'A' && !this.demo
+      ? this.#receiverPoint(receiver, d)
+      : new THREE.Vector3(
+        THREE.MathUtils.clamp(rp.x + gauss() * d.precision * 0.6, -COURT.halfWidth + 0.4, COURT.halfWidth - 0.4),
+        0.3,
+        rs * THREE.MathUtils.clamp(Math.abs(rp.z) + 0.6 + gauss() * d.precision * 0.5, 2.5, COURT.halfLength - 0.5),
+      );
     const topspin = d.jumpServe || Math.random() < 0.3;
     const dir = new THREE.Vector3(target.x - from.x, 0, target.z - from.z).normalize();
     const spin = topspin ? new THREE.Vector3(dir.z, 0, -dir.x).multiplyScalar(26) : new THREE.Vector3();
@@ -263,6 +281,7 @@ export class BotDirector {
   }
 
   #feasible(bot, kind, window, d, delay) {
+    d = this.skillOf(bot);
     let best = null;
     let closestMiss = null;
     for (const s of window) {
@@ -312,7 +331,7 @@ export class BotDirector {
         if (best) {
           const cand = { bot: m, kind, ...best };
           if (!choice || cand.s.t < choice.s.t || (cand.s.t === choice.s.t && cand.dist < choice.dist)) choice = cand;
-        } else if (closestMiss && kind !== 'attack' && closestMiss.miss < 0.3 && !choice) {
+        } else if (closestMiss && kind !== 'attack' && closestMiss.miss < (m.isPartner ? 0.7 : 0.3) && !choice) {
           choice = { bot: m, kind: 'dig', ...closestMiss, dive: true };
         }
       }
@@ -338,7 +357,7 @@ export class BotDirector {
       jumpAt: null,
       done: false,
     };
-    bot.moveTo(choice.stand, { urgency: 1, delay: d.reaction + delay });
+    bot.moveTo(choice.stand, { urgency: bot.isPartner ? 1.15 : 1, delay: this.skillOf(bot).reaction + delay });
     if (bot.plan.kind === 'attack') {
       const h = THREE.MathUtils.clamp(choice.s.y - Bot.reach(0), 0.12, this.jumpHeight);
       bot.plan.jumpHeight = h;
@@ -458,7 +477,7 @@ export class BotDirector {
   }
 
   #executeTouch(bot, plan) {
-    const d = this.difficulty;
+    const d = this.skillOf(bot);
     const from = this.ball.position.clone();
     const sign = bot.sign;
     const error = d.precision * (plan.dive ? 1.9 : 1);
@@ -475,8 +494,12 @@ export class BotDirector {
     else if (kind === 'attack') ({ target, flight, spin } = this.#attackTarget(bot, from));
     else ({ target, flight } = this.#freeTarget(bot));
 
-    target.x += gauss() * error * 0.35;
-    target.z += gauss() * error * 0.35;
+    // Bola mandada para o time do jogador já foi mirada na mão/corpo de quem recebe.
+    const towardA = bot.team === 'B' && !this.demo;
+    if (!towardA) {
+      target.x += gauss() * error * 0.35;
+      target.z += gauss() * error * 0.35;
+    }
 
     let velocity;
     if (kind === 'attack' || kind === 'free') velocity = this.#clearNet(from, target, flight, spin, kind === 'attack' ? 0.12 : 0.6);
@@ -519,7 +542,10 @@ export class BotDirector {
     // Ataques "jogáveis" (na direção de um defensor) contra o jogador e em toda a demo;
     // o parceiro do jogador procura o espaço vazio em metade das vezes.
     const playable = opp === 'A' || this.demo || Math.random() < 0.5;
-    if (playable) {
+    if (opp === 'A' && !this.demo) {
+      const [h, p] = this.members('A');
+      target = this.#receiverPoint(Math.random() < 0.6 ? h : p, d);
+    } else if (playable) {
       // Ataques jogáveis: na direção de quem defende, com ângulo e força variados.
       const [h, p] = this.members(opp);
       const receiver = Math.random() < 0.62 ? h : p;
@@ -538,7 +564,7 @@ export class BotDirector {
       target = best.c;
     }
     target.x = THREE.MathUtils.clamp(target.x, -COURT.halfWidth + 0.35, COURT.halfWidth - 0.35);
-    target.z = os * THREE.MathUtils.clamp(Math.abs(target.z), 1.2, COURT.halfLength - 0.5);
+    target.z = os * THREE.MathUtils.clamp(Math.abs(target.z), opp === 'A' && !this.demo ? 0.6 : 1.2, COURT.halfLength - 0.5);
     const dist = Math.hypot(target.x - from.x, target.z - from.z);
     const power = d.attackSpeed * (0.82 + Math.random() * 0.3);
     const flight = THREE.MathUtils.clamp(dist / power, 0.4, 1.4);
@@ -550,6 +576,10 @@ export class BotDirector {
   #freeTarget(bot) {
     const opp = bot.team === 'A' ? 'B' : 'A';
     const os = signOf(opp);
+    if (opp === 'A' && !this.demo) {
+      const [h, p] = this.members('A');
+      return { target: this.#receiverPoint(Math.random() < 0.6 ? h : p, this.difficulty), flight: 1.75 };
+    }
     return {
       target: new THREE.Vector3((Math.random() - 0.5) * 4, 0.9, os * (4 + Math.random() * 2.5)),
       flight: 1.75,
@@ -598,7 +628,7 @@ export class BotDirector {
       if (this.match.live || this.match.state === 'serve') {
         if (!this.serveTimeline || this.serveTimeline.server !== bot) bot.lookAt.copy(this.ball.position);
       }
-      bot.update(dt, d);
+      bot.update(dt, bot.isPartner ? this.skillOf(bot) : d);
     }
   }
 
