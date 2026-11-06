@@ -30,20 +30,14 @@ export class XRSessionManager {
 
   async enter() {
     if (this.session) return;
-    let session;
-    try {
-      session = await navigator.xr.requestSession('immersive-vr', {
-        requiredFeatures: ['local-floor', 'hand-tracking'],
-        optionalFeatures: ['bounded-floor'],
-      });
-      this.handTracking = true;
-    } catch {
-      session = await navigator.xr.requestSession('immersive-vr', {
-        requiredFeatures: ['local-floor'],
-        optionalFeatures: ['hand-tracking', 'bounded-floor'],
-      });
-      this.handTracking = false;
-    }
+    // Um único pedido (o navegador só aceita requestSession logo após o clique):
+    // hand-tracking opcional, para nunca falhar se o rastreio de mãos estiver desligado.
+    const session = await navigator.xr.requestSession('immersive-vr', {
+      requiredFeatures: ['local-floor'],
+      optionalFeatures: ['hand-tracking', 'bounded-floor'],
+    });
+    const features = session.enabledFeatures;
+    this.handTracking = features ? Array.from(features).includes('hand-tracking') : true;
 
     session.addEventListener('end', () => this.#onEnd(), { once: true });
     this.session = session;
