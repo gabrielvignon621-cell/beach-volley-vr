@@ -5,6 +5,9 @@ const SNAP_ANGLE = Math.PI / 4;
 const ARC_SPEED = 7.5;
 const ARC_POINTS = 40;
 const FADE_TIME = 0.12;
+const POINT_HOLD = 0.25; // segundos apontando antes do arco aparecer
+const CALIB_DELAY = 0.5; // espera o headset estabilizar a pose antes de calibrar
+const MAX_LIFT = 0.9; // limite da correção de altura (m)
 
 const head = new THREE.Vector3();
 const m1 = new THREE.Matrix4();
@@ -32,6 +35,12 @@ export class Locomotion {
     this.target = new THREE.Vector3();
     this.valid = false;
     this.fade = { t: 0, phase: null, action: null };
+    this.calib = -1;
+    this.lift = 0;
+    this.point = [0, 0]; // tempo segurando o gesto de apontar, por mão
+    this.aimSide = -1;
+    this.handsEnabled = true; // desligado com o menu aberto (apontar+pinça é o clique do menu)
+    this.ray = { origin: new THREE.Vector3(), dir: new THREE.Vector3() };
 
     const arcGeo = new THREE.BufferGeometry();
     arcGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(ARC_POINTS * 3), 3));
@@ -56,7 +65,10 @@ export class Locomotion {
   begin() {
     this.base = this.renderer.xr.getReferenceSpace();
     this.matrix.makeTranslation(PLAYER.spawn.x, 0, PLAYER.spawn.z);
+    this.lift = 0;
     this.#apply();
+    // Calibra posição e altura assim que a pose da cabeça for válida.
+    this.calib = CALIB_DELAY;
   }
 
   end() {
@@ -97,23 +109,38 @@ export class Locomotion {
     });
   }
 
-  /** Volta para a posição de recepção, olhando para a rede. */
+  /** Volta para a posição de recepção, olhando para a rede, com os olhos na altura dos atletas. */
   recenter() {
-    this.#withFade(() => {
-      const camera = this.renderer.xr.getCamera();
-      const h = camera.getWorldPosition(new THREE.Vector3());
-      const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
-      const yaw = Math.atan2(-fwd.x, -fwd.z);
-      m1.makeTranslation(h.x, 0, h.z).multiply(m2.makeRotationY(-yaw)).multiply(new THREE.Matrix4().makeTranslation(-h.x, 0, -h.z));
-      this.matrix.premultiply(m1);
-      this.matrix.premultiply(new THREE.Matrix4().makeTranslation(PLAYER.spawn.x - h.x, 0, PLAYER.spawn.z - h.z));
-      this.#apply();
-    });
+    this.#withFade(() => this.#recenterNow());
+  }
+
+  #recenterNow() {
+    const camera = this.renderer.xr.getCamera();
+    const h = camera.getWorldPosition(new THREE.Vector3());
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.getWorldQuaternion(new THREE.Quaternion()));
+    const yaw = Math.atan2(-fwd.x, -fwd.z);
+    m1.makeTranslation(h.x, 0, h.z).multiply(m2.makeRotationY(-yaw)).multiply(new THREE.Matrix4().makeTranslation(-h.x, 0, -h.z));
+    this.matrix.premultiply(m1);
+    // Altura: leva os olhos para PLAYER.eyeHeight (mesma altura dos bots), seja qual for a altura real.
+    const realEye = h.y - this.lift;
+    const lift = THREE.MathUtils.clamp(PLAYER.eyeHeight - realEye, -MAX_LIFT, MAX_LIFT);
+    this.matrix.premultiply(new THREE.Matrix4().makeTranslation(PLAYER.spawn.x - h.x, lift - this.lift, PLAYER.spawn.z - h.z));
+    this.lift = lift;
+    this.#apply();
   }
 
   update(dt) {
     this.#updateFade(dt);
     if (!this.base) return;
+    if (this.calib > 0) {
+      this.calib -= dt;
+      const y = this.#headWorld().y;
+      if (this.calib <= 0) {
+        if (y > 0.3) this.#recenterNow();
+        else this.calib = 0.1;
+      }
+    }
+    if (this.#updateHandGesture(dt)) return;
     const right = this.rig.sides.find((s) => s.mode === 'controller' && s.handedness === 'right');
     const axes = right?.source?.gamepad?.axes;
     if (!axes || axes.length < 4) {
@@ -141,11 +168,58 @@ export class Locomotion {
     }
   }
 
+  /**
+   * Teleporte com as mãos: aponte com o indicador (outros dedos dobrados) para o chão do seu lado,
+   * segure ~0,25 s até o arco aparecer, e abra a mão (ou feche o punho) para ir até lá.
+   * Retorna true enquanto o gesto está controlando o arco.
+   */
+  #updateHandGesture(dt) {
+    let active = -1;
+    for (const side of this.rig.sides) {
+      const i = side.index;
+      if (!this.handsEnabled || side.mode !== 'hand' || !side.visible || !this.#isPointing(side)) {
+        this.point[i] = 0;
+        continue;
+      }
+      this.point[i] += dt;
+      if (this.point[i] >= POINT_HOLD && (active < 0 || i === this.aimSide)) active = i;
+    }
+    if (active >= 0) {
+      const J = this.rig.sides[active].joints;
+      this.ray.origin.copy(J.get('index-finger-tip'));
+      this.ray.dir.subVectors(J.get('index-finger-tip'), J.get('index-finger-phalanx-proximal')).normalize();
+      if (this.aimSide !== active) this.rig.feedback?.(active, 0.2);
+      this.aimSide = active;
+      this.#aimRay(this.ray.origin, this.ray.dir);
+      return true;
+    }
+    if (this.aimSide >= 0) {
+      this.aimSide = -1;
+      this.arc.visible = false;
+      this.marker.visible = false;
+      if (this.valid) this.teleport(this.target);
+      return true;
+    }
+    return false;
+  }
+
+  /** Indicador esticado, médio/anelar/mindinho dobrados. */
+  #isPointing(side) {
+    const J = side.joints;
+    const wrist = J.get('wrist');
+    const ext = (f) => J.get(`${f}-tip`).distanceTo(wrist) / Math.max(0.03, J.get(`${f}-phalanx-proximal`).distanceTo(wrist));
+    return ext('index-finger') > 1.75 && ext('middle-finger') < 1.4 && ext('ring-finger') < 1.4 && ext('pinky-finger') < 1.45;
+  }
+
   #aim(controller) {
     controller.updateWorldMatrix(true, false);
     const origin = new THREE.Vector3().setFromMatrixPosition(controller.matrixWorld);
     const dir = new THREE.Vector3(0, 0, -1).transformDirection(controller.matrixWorld);
-    const v = dir.multiplyScalar(ARC_SPEED);
+    this.#aimRay(origin, dir);
+  }
+
+  #aimRay(origin, direction) {
+    const v = direction.clone().multiplyScalar(ARC_SPEED);
     const positions = this.arc.geometry.attributes.position;
     const p = origin.clone();
     let landed = false;
@@ -154,7 +228,7 @@ export class Locomotion {
       if (!landed) {
         p.addScaledVector(v, dt);
         v.y -= 9.8 * dt;
-        if (p.y <= 0) {
+        if (p.y <= 0 && v.y < 0) {
           p.y = 0.01;
           landed = true;
           this.target.copy(p);

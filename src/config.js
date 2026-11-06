@@ -42,7 +42,7 @@ export const PHYSICS = {
 
 export const PLAYER = {
   spawn: new Vector3(1.4, 0, 5.2),
-  eyeHeight: 1.65,
+  eyeHeight: 1.72, // altura dos olhos dos bots
 };
 
 export const WORLD = {

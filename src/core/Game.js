@@ -169,6 +169,7 @@ export class Game {
       this.#updateHuman(viewer, presenting);
       this.rig.update(dt, viewer);
       this.striker.frameDt = dt || 1 / 72;
+      this.locomotion.handsEnabled = !this.vrMenu.open;
       this.locomotion.update(dt);
 
       const paused = this.paused;

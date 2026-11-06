@@ -44,10 +44,10 @@ Ao entrar, o menu aparece na sua frente. Escolha a dificuldade (Fácil, Normal, 
 | Menu / pausa | Encoste o indicador direito no botão do relógio do pulso esquerdo | Grip (apertar a lateral) |
 | Botões do menu | Encostar o dedo, ou apontar e fazer pinça | Apontar e gatilho |
 | Girar 45° | — | Analógico direito para os lados |
-| Teletransporte | — | Analógico direito para frente, mirar o arco e soltar (só no seu lado da quadra) |
-| Recentrar | Botão no menu | Botão no menu |
+| Teletransporte | Aponte o indicador (outros dedos dobrados) para o chão do seu lado, espere o arco e abra a mão | Analógico direito para frente, mirar o arco e soltar (só no seu lado da quadra) |
+| Recentrar | Botão no menu (também ajusta sua altura à dos bots) | Botão no menu |
 
-O jogo é room-scale: você anda de verdade para alcançar a bola. Locomoção artificial é opcional e sempre com fade, para conforto.
+O jogo é room-scale: você anda de verdade para alcançar a bola. Ao entrar, você é posicionado automaticamente na recepção, de frente para a rede, com os olhos na altura dos bots. Locomoção artificial é opcional e sempre com fade, para conforto.
 
 ## No PC
 
